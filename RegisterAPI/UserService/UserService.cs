@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RegisterAPI.Db;
 using RegisterAPI.DTOs;
+using RegisterAPI.Interfaces;
 using RegisterAPI.Models;
+using RegisterAPI.Services;
 using System.Text.RegularExpressions;
 
 namespace RegisterAPI.Services
@@ -28,25 +30,25 @@ namespace RegisterAPI.Services
         {
             var errors = ValidateUser(dto);
             if (errors.Any())
-                return ServiceResult.Failure(errors);
+                return ServiceResult.FailureResult(errors);
 
             var user = CreateUser(dto);
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return ServiceResult.Success();
+            return ServiceResult.SuccessResult();
         }
 
         public async Task<ServiceResult<User>> AuthenticateUserAsync(LoginDTO dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
-                return ServiceResult<User>.Failure("E-mail e senha são obrigatórios.");
+                return ServiceResult<User>.FailureResult("E-mail e senha são obrigatórios.");
 
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
             if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
-                return ServiceResult<User>.Failure("E-mail ou senha inválidos.");
+                return ServiceResult<User>.FailureResult("E-mail ou senha inválidos.");
 
-            return ServiceResult<User>.Success(user);
+            return ServiceResult<User>.SuccessResult(user);
         }
 
         public async Task<List<User>> GetAllUsersAsync()
@@ -58,11 +60,11 @@ namespace RegisterAPI.Services
         {
             var user = await _context.Users.FindAsync(id);
             if (user == null)
-                return ServiceResult.Failure("Usuário não encontrado.");
+                return ServiceResult.FailureResult("Usuário não encontrado.");
 
             var errors = ValidateUser(dto, id);
             if (errors.Any())
-                return ServiceResult.Failure(errors);
+                return ServiceResult.FailureResult(errors);
 
             user.FullName = dto.FullName.Trim();
             user.Email = dto.Email.Trim().ToLowerInvariant();
@@ -71,19 +73,19 @@ namespace RegisterAPI.Services
             user.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
-            return ServiceResult.Success();
+            return ServiceResult.SuccessResult();
         }
 
         public async Task<ServiceResult> DeleteUserAsync(int id)
         {
             var user = await _context.Users.FindAsync(id);
             if (user == null)
-                return ServiceResult.Failure("Usuário não encontrado.");
+                return ServiceResult.FailureResult("Usuário não encontrado.");
 
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
 
-            return ServiceResult.Success();
+            return ServiceResult.SuccessResult();
         }
 
         private List<string> ValidateUser(RegisterDTO dto, int? id = null)
@@ -121,22 +123,5 @@ namespace RegisterAPI.Services
                 UpdatedAt = DateTime.UtcNow
             };
         }
-    }
-
-    public class ServiceResult
-    {
-        public bool Success { get; private set; }
-        public List<string> Errors { get; private set; }
-
-        public static ServiceResult Success() => new ServiceResult { Success = true };
-        public static ServiceResult Failure(params string[] errors) => new ServiceResult { Success = false, Errors = errors.ToList() };
-    }
-
-    public class ServiceResult<T> : ServiceResult
-    {
-        public T User { get; private set; }
-
-        public static ServiceResult<T> Success(T user) => new ServiceResult<T> { Success = true, User = user };
-        public static new ServiceResult<T> Failure(params string[] errors) => new ServiceResult<T> { Success = false, Errors = errors.ToList() };
     }
 }
