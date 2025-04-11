@@ -1,22 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RegisterAPI.Db;
 using RegisterAPI.DTOs;
-using RegisterAPI.Interfaces;
 using RegisterAPI.Models;
-using RegisterAPI.Services;
+using RegisterAPI.Interfaces;
 using System.Text.RegularExpressions;
 
 namespace RegisterAPI.Services
 {
-    public interface IUserService
-    {
-        Task<ServiceResult> RegisterUserAsync(RegisterDTO dto);
-        Task<ServiceResult<User>> AuthenticateUserAsync(LoginDTO dto);
-        Task<List<User>> GetAllUsersAsync();
-        Task<ServiceResult> UpdateUserAsync(int id, RegisterDTO dto);
-        Task<ServiceResult> DeleteUserAsync(int id);
-    }
-
     public class UserService : IUserService
     {
         private readonly AppDbContext _context;
